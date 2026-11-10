@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Jurusan;
 use App\Models\Pendaftar;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class PendaftarController extends Controller
@@ -49,16 +50,23 @@ class PendaftarController extends Controller
             'catatan' => 'nullable|string|max:500',
         ]);
 
-        if ($data['status'] === 'diterima' && $pendaftar->status !== 'diterima') {
-            $terisi = Pendaftar::where('jurusan_id', $pendaftar->jurusan_id)->where('status', 'diterima')->count();
-            if ($terisi >= $pendaftar->jurusan->kuota) {
-                return back()->withErrors(['status' => 'Kuota jurusan sudah penuh. Pilih status cadangan.']);
+        // Transaksi + kunci baris jurusan: dua admin yang menerima pendaftar
+        // secara bersamaan tidak bisa melewati batas kuota.
+        return DB::transaction(function () use ($pendaftar, $data) {
+            $jurusan = Jurusan::whereKey($pendaftar->jurusan_id)->lockForUpdate()->firstOrFail();
+            $pendaftar->refresh();
+
+            if ($data['status'] === 'diterima' && $pendaftar->status !== 'diterima') {
+                $terisi = Pendaftar::where('jurusan_id', $jurusan->id)->where('status', 'diterima')->count();
+                if ($terisi >= $jurusan->kuota) {
+                    return back()->withErrors(['status' => 'Kuota jurusan sudah penuh. Pilih status cadangan.']);
+                }
             }
-        }
 
-        $pendaftar->update($data);
+            $pendaftar->update($data);
 
-        return back()->with('ok', 'Status pendaftar diperbarui.');
+            return back()->with('ok', 'Status pendaftar diperbarui.');
+        });
     }
 
     public function dokumen(Pendaftar $pendaftar)

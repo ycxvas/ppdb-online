@@ -1,0 +1,28 @@
+# Dependensi dan build
+/vendor
+/node_modules
+/public/build
+/public/hot
+
+# Konfigurasi dan rahasia
+.env
+.env.*
+!.env.example
+
+# Data aplikasi (termasuk dokumen pendaftar, jangan pernah di-commit)
+/storage/*.key
+/storage/app/*
+!/storage/app/.gitignore
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+*.sqlite
+*.sqlite-journal
+
+# Lain-lain
+.phpunit.result.cache
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
